@@ -1,0 +1,71 @@
+# Template run config. Copy it, fill in the REQUIRED lines, then:
+#   bash run_pipeline.sh my_run.yaml 0     (00_check_inputs runs first and stops on problems)
+# or on SLURM:  bash submit.sh my_run.yaml 0 1 2 3 4
+# Relative paths are read from the folder this file is in.
+
+# ---------------- REQUIRED ----------------
+name: my_experiment            # letters, digits, _ . -  (used in job names)
+out_dir: /lustre/fs4/fuchs_lab/scratch/YOUR_USER/alphagenome_runs/my_experiment
+
+organism: MUS_MUSCULUS         # MUS_MUSCULUS or HOMO_SAPIENS
+# The genome MUST be the assembly AlphaGenome was trained on: mm10 for mouse, hg38 for human.
+# (mm39, hg19 and Ensembl "1" style names are refused by 00_check_inputs.) Lift data over first if needed.
+genome_fasta: /path/to/mm10.fa
+weights: /path/to/alphagenome/weights/all_folds   # see env/download_weights.sh (licence is personal)
+
+context: 131072                # input length: 131072 (fast, 16 GB GPU ok), 524288 or 1048576 (about 28 GB GPU)
+
+head:
+  # atac, dnase, procap, cage, rna_seq, chip_tf, chip_histone
+  # (chip_* heads predict at 128 bp only; rna_seq applies squashing, read the alphagenome_ft docs)
+  kind: atac
+  tracks:                      # one output track per bigwig; all bigwigs on the same assembly
+    - label: sampleA           # short unique name, used in the result tables
+      bigwig: /path/to/sampleA.bw
+    - label: sampleB
+      bigwig: /path/to/sampleB.bw
+  # Coverage bigwigs (CPM or raw) are fine. Values must be >= 0. Pool replicates into one bigwig.
+
+peaks:                         # narrowPeak or BED, any number of files (e.g. one per sample)
+  - /path/to/sampleA_peaks.narrowPeak.gz
+  - /path/to/sampleB_peaks.narrowPeak.gz
+  # Used to (1) keep only windows that contain peaks and (2) score per-peak accuracy.
+
+split:
+  # Either a fold file (test/valid/train chromosome lists; {fold} is filled by --fold)...
+  folds_json: ../folds/mm10/fold_{fold}.json
+  # ...or the lists themselves (then do not pass a fold):
+  # test: [chr1, chr3, chr6, chr19]
+  # valid: [chr2, chr14]
+  # Every other chromosome is used for training.
+
+# ---------------- OPTIONAL (defaults shown) ----------------
+exclude_bed: null              # loci to keep out of training and evaluation (blacklist, contaminants)
+exclude_mode: drop             # drop: remove windows touching them; mask: keep windows, ignore those bases in the loss
+chromosomes: null              # default chr1..chrN + chrX (no chrY, chrM, random contigs)
+
+windows:
+  min_peaks: 1                 # a window needs at least this many peaks
+  max_n_fraction: 0.05         # and less than 5% N
+
+train:
+  epochs: 3
+  batch_size: 1
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  early_stopping_patience: 1   # stop after 1 epoch without a better validation loss
+  max_valid_windows: null      # e.g. 600 to make each validation pass faster
+  seed: 42
+
+evaluate:
+  peak_half_width: 250         # per-peak signal = sum over summit +/- 250 bp
+  compare_pairs: all           # log-ratio accuracy for these pairs: all, none, or a list like [[sampleB, sampleA]]
+
+insertion:                     # in silico motif insertion at closed test sites (step 04)
+  enabled: false
+  n_sites: 300
+  n_shuffles: 5
+  readout_half_width: 250
+  min_distance_to_peak: 5000
+  avoid_kmers: []
+  motifs: {}                   # e.g. {SOX: CCATTGTTC, AP1: ATGACTCAT}

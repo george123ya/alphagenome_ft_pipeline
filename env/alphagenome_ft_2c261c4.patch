@@ -1,0 +1,26 @@
+diff --git a/alphagenome_ft/custom_model.py b/alphagenome_ft/custom_model.py
+index e65ccdc..45a405f 100644
+--- a/alphagenome_ft/custom_model.py
++++ b/alphagenome_ft/custom_model.py
+@@ -261,7 +261,7 @@ class CustomAlphaGenomeModel:
+                 sequences,
+                 organism_indices,
+                 *,
+-                requested_outputs,
++                requested_outputs=None,  # LOCAL PATCH (pioneer_factors_scc): finetune.train calls _predict without it
+                 negative_strand_mask,
+                 strand_reindexing,
+                 rng=None,
+diff --git a/alphagenome_ft/finetune/train.py b/alphagenome_ft/finetune/train.py
+index 8c2274b..13a6854 100644
+--- a/alphagenome_ft/finetune/train.py
++++ b/alphagenome_ft/finetune/train.py
+@@ -136,7 +136,7 @@ def _shard_batch(batch: Mapping[str, jax.Array], num_devices: int):
+         per_device_batch = value.shape[0] // num_devices
+         return value.reshape((num_devices, per_device_batch, *value.shape[1:]))
+ 
+-    return {name: shard_array(name, value) for name, value in batch.items()}
++    return {name: shard_array(value) for name, value in batch.items()}
+ 
+ 
+ def train(

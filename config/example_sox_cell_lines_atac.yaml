@@ -1,0 +1,61 @@
+# Worked example: the Fuchs lab SOX2/SOX9 SCC cell lines (Deniz's project), ATAC-seq, mouse mm10.
+# This is the setup behind the fold 0 results of September 2026, rewritten for this pipeline.
+# Paths are on the RU HPC. Run all five folds with:  bash submit.sh config/example_sox_cell_lines_atac.yaml 0 1 2 3 4
+
+name: sox_lines_atac_131kb
+out_dir: /lustre/fs4/fuchs_lab/scratch/gmunoz/alphagenome_runs/sox_lines_atac_131kb   # fold_N is added
+
+organism: MUS_MUSCULUS
+genome_fasta: /lustre/fs4/fuchs_lab/scratch/gmunoz/pioneer_factors_scc_models/shared/genome/mm10.fa
+weights: /lustre/fs4/fuchs_lab/scratch/gmunoz/pioneer_factors_scc_models/alphagenome/weights/all_folds
+context: 131072
+
+head:
+  kind: atac
+  tracks:   # pooled-replicate CPM bigwigs, 10 bp bins, fragment coverage
+    - label: Sox9hi_3g
+      bigwig: /lustre/fs4/fuchs_lab/scratch/gmunoz/pioneer_factors_scc_models/shared/bw/ATAC_Sox9hi.bw
+    - label: Double_3gG1
+      bigwig: /lustre/fs4/fuchs_lab/scratch/gmunoz/pioneer_factors_scc_models/shared/bw/ATAC_Double.bw
+    - label: Sox2hi_3gG2
+      bigwig: /lustre/fs4/fuchs_lab/scratch/gmunoz/pioneer_factors_scc_models/shared/bw/ATAC_Sox2hi.bw
+
+peaks:
+  - /lustre/fs4/fuchs_lab/scratch/gmunoz/pioneer_factors_scc_models/shared/peaks_idr/Sox9hi.IDR_0.05.PooledInRep1AndRep2.filt.narrowPeak.gz
+  - /lustre/fs4/fuchs_lab/scratch/gmunoz/pioneer_factors_scc_models/shared/peaks_idr/Double.IDR_0.05.PooledInRep1AndRep2.filt.narrowPeak.gz
+  - /lustre/fs4/fuchs_lab/scratch/gmunoz/pioneer_factors_scc_models/shared/peaks_idr/Sox2hi.IDR_0.05.PooledInRep1AndRep2.filt.narrowPeak.gz
+
+# plasmid and human DNA contamination loci found in this dataset
+exclude_bed: /lustre/fs4/fuchs_lab/scratch/gmunoz/pioneer_factors_scc_models/shared/beds/contaminant_loci.bed
+exclude_mode: drop
+
+split:
+  folds_json: ../folds/mm10/fold_{fold}.json   # same chromosome folds as the ChromBPNet models
+
+train:
+  max_valid_windows: 600   # early stopping looks at the first 600 validation windows (saves time)
+
+evaluate:
+  compare_pairs:
+    - [Sox2hi_3gG2, Sox9hi_3g]
+    - [Double_3gG1, Sox9hi_3g]
+    - [Sox2hi_3gG2, Double_3gG1]
+
+insertion:
+  enabled: true
+  n_sites: 300
+  n_shuffles: 5
+  # shuffles that recreate a SOX or AP-1 core are re-drawn
+  avoid_kmers: [ATTGT, ACAAT, TGACTC, GAGTCA, TGAGTC, GACTCA]
+  motifs:
+    SOX_single: CCATTGTTC
+    SOX9_pair: AACAATGGGCGCCATTGTT
+    SOX2_OCT4: CATTGTTATGCAAAT
+    SOX_x3: CCATTGTTCGATCCCATTGTTCGATCCCATTGTTC
+    AP1_FOS_JUN: ATGACTCAT
+    CTCF: TGGCCACCAGGGGGCGCTA
+    TEAD1: CACATTCCA
+    TP63: AGACATGTCTAGACATGTCT
+    KLF4: GCCCCACCCA
+    RELA_NFkB: GGGACTTTCC
+    RUNX1: TCTGTGGTTT
