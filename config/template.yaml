@@ -8,6 +8,8 @@ name: my_experiment            # letters, digits, _ . -  (used in job names)
 out_dir: /lustre/fs4/fuchs_lab/scratch/YOUR_USER/alphagenome_runs/my_experiment
 
 organism: MUS_MUSCULUS         # MUS_MUSCULUS or HOMO_SAPIENS
+# This picks the genome and the organism the model predicts for. It is NOT passed to
+# prepare_head_specs (that always gets organism=None, see agft/model.py: the zero-gradient trap).
 # The genome MUST be the assembly AlphaGenome was trained on: mm10 for mouse, hg38 for human.
 # (mm39, hg19 and Ensembl "1" style names are refused by 00_check_inputs.) Lift data over first if needed.
 genome_fasta: /path/to/mm10.fa
