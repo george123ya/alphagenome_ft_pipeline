@@ -9,6 +9,8 @@ Everything about one experiment lives in a single YAML config. A new dataset nee
 code changes. The worked example is the Fuchs lab SOX2/SOX9 cell line ATAC data
 (`config/example_sox_cell_lines_atac.yaml`).
 
+Setting up on a new machine (environment, weights, data, expected numbers): see `REPRODUCE.md`.
+
 Locations:
 - RU HPC: `/lustre/fs4/fuchs_lab/scratch/gmunoz/alphagenome_ft_pipeline`
 - genos: `/home/genos/gmunoz/SCRATCH/Projects/alphagenome_ft_pipeline`
